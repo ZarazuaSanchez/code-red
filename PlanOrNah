@@ -1,0 +1,6 @@
+Possible Plan??
+1.	Build website that inputs TO and FROM [Page A]-> Displays Cheapest Flights On new webpage [Page B](skyscanner api)
+2.	Add map that displays Destination Location and underneath asks for what they want to do there and display markers at the areas [Page B] (here.com api)
+3.	Implement a feature that allows user to upload a picture instead of typing location [Page A] (Google Cloud API)
+4.	Add Similar Locations Function, which Displays three nearby places to the wanted location [Page B] (Algolia API)
+5.	Add a function if user does not know where to go, they can talk to a chatbot which will tell them cool places [Page A -> Page C](cisco webex api)
