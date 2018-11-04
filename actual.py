@@ -32,7 +32,10 @@ def apiData(st,dest,dep_date,ret_date = None, arr_date = None, arr_time = None, 
     response = requests.get("https://api.sandbox.amadeus.com/v1.2/flights/low-fare-search", params = par)
     data = response.json()
     return data
+
 def minCostPlane(data):
+    if "results" not in data:
+        return None
     minFare = -1
     for i in data['results']:
         atot = float(i["fare"]["price_per_adult"]["total_fare"].replace('"','').strip()) + float(i["fare"]["price_per_adult"]["tax"].replace('"','').strip())
@@ -57,8 +60,31 @@ def minCostPlane(data):
                     for k in range(len(i[j])):
                         x += 1
                         resp = "%s%s%s\n" % (resp,"Flight ",str(x))
-    #                     print("\t\tOutbound:")
+                        resp = "%s%s\n" % (resp,"Outbound:")
                         out = i[j][k]["outbound"]
+                        resp = "%s%s%s\n" % (resp,"Duration: ",str(out["duration"]))
+    #                     print("\t\t\tFlights Options:")
+                        for m in range(len(out["flights"])):
+                            resp = "%s%s%s\n" % (resp,"\tConnection: ",str(m+1))
+                            flight = out["flights"][m]
+                            leave = flight["departs_at"]
+                            resp = "%s%s%s %s\n" % (resp,"\tDeparture: ",leave[:leave.find('T')],leave[leave.find('T')+1:])
+                            reach = flight["arrives_at"]
+                            resp = "%s%s%s %s\n" % (resp,"\tArrival: ",reach[:reach.find('T')],reach[reach.find('T')+1:])
+                            if len(flight["origin"]) == 1:
+                                resp = "%s%s%s\n" % (resp,"\tOrigin: ",flight["origin"]["airport"])
+                            else:
+                                resp = "%s%s%s %s\n" % (resp,"\tOrigin: ",flight["origin"]["airport"],flight["origin"]["terminal"])
+                            if len(flight["destination"]) == 1:
+                                resp = "%s%s%s\n" % (resp,"\tDestination: ",flight["destination"]["airport"])
+                            else:
+                                resp = "%s%s%s %s\n" % (resp,"\tDestination: ",flight["destination"]["airport"],flight["destination"]["terminal"])
+                            resp = "%s%s%s %s\n" % (resp,"\tPlane: ",flight["operating_airline"],flight["aircraft"])
+                            resp = "%s%s%s\n" % (resp,"\tFlight No: ",flight["flight_number"])
+                            resp = "%s%s%s\n\n" % (resp,"\tClass: ",flight["booking_info"]["travel_class"])
+                        
+                        resp = "%s%s\n" % (resp,"Inbound:")
+                        out = i[j][k]["inbound"]
                         resp = "%s%s%s\n" % (resp,"Duration: ",str(out["duration"]))
     #                     print("\t\t\tFlights Options:")
                         for m in range(len(out["flights"])):
@@ -122,7 +148,11 @@ def newform():
         infant = int(request.form["infant"])
         
         x = apiData(st,dest,dep_date,ret_date = ret_date, adult = adult, child = child, infant = infant)
-        out = minCostPlane(x)
+        if x is None:
+            out = "No flights available"
+        else:
+            out = minCostPlane(x)
+#        out = x
         
         return render_template("index.html", out = out)
 if __name__ == "__main__":
