@@ -1,150 +1,128 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import json\n",
-    "import requests\n",
-    "from lxml import html\n",
-    "from collections import OrderedDict\n",
-    "import argparse\n",
-    "import certifi\n",
-    "import urllib3\n",
-    "\n",
-    "def apiData(st,dest,dep_date,ret_date = None, arr_date = None, arr_time = None, adult = None, child = None, infant = None, max_p = None, curr = \"USD\"):\n",
-    "    par = {}\n",
-    "    par[\"apikey\"] = \"urcU6q4MmXBZ2iWBDp7ghIGg0pygrj3x\"\n",
-    "    par[\"origin\"] = st\n",
-    "    par[\"destination\"] = dest\n",
-    "    par[\"departure_date\"] = dep_date\n",
-    "    if ret_date is not None:\n",
-    "        par[\"return_date\"] = ret_date\n",
-    "    if arr_date is not None and arr_time is not None:\n",
-    "        par[\"arrive_by\"] = arr_date+\"T\"+arr_time\n",
-    "    if adult is None:\n",
-    "        par[\"adults\"] = 1\n",
-    "    else:\n",
-    "        par[\"adults\"] = adult\n",
-    "    if child is not None or child > 0:\n",
-    "        par[\"children\"] = child\n",
-    "    if infant is not None or infant > 0:\n",
-    "        par[\"infants\"] = infant\n",
-    "    if max_p is not None and max_p > 0:\n",
-    "        par[\"max_price\"] = max_p\n",
-    "    if curr is not None:\n",
-    "        par[\"currency\"] = curr\n",
-    "\n",
-    "    response = requests.get(\"https://api.sandbox.amadeus.com/v1.2/flights/low-fare-search\", params = par)\n",
-    "    data = response.json()\n",
-    "    return data\n",
-    "\n",
-    "def minCostPlane(data):\n",
-    "    minFare = -1\n",
-    "    for i in data['results']:\n",
-    "        atot = float(i[\"fare\"][\"price_per_adult\"][\"total_fare\"].replace('\"','').strip()) + float(i[\"fare\"][\"price_per_adult\"][\"tax\"].replace('\"','').strip())\n",
-    "        if \"price_per_child\" in i[\"fare\"]:\n",
-    "            ctot = float(i[\"fare\"][\"price_per_child\"][\"total_fare\"].replace('\"','').strip()) + float(i[\"fare\"][\"price_per_child\"][\"tax\"].replace('\"','').strip())\n",
-    "        else:\n",
-    "            ctot = 0\n",
-    "        if \"price_per_infant\" in i[\"fare\"]:\n",
-    "            itot = float(i[\"fare\"][\"price_per_infant\"][\"total_fare\"].replace('\"','').strip()) + float(i[\"fare\"][\"price_per_infant\"][\"tax\"].replace('\"','').strip())\n",
-    "        else:\n",
-    "            itot = 0\n",
-    "        if minFare < 0 or minFare > float(i[\"fare\"][\"total_price\"].replace('\"','').strip())+float(i[\"fare\"][\"price_per_adult\"][\"tax\"].replace('\"','').strip()):\n",
-    "            minFare = float(i[\"fare\"][\"total_price\"].replace('\"','').strip())+float(i[\"fare\"][\"price_per_adult\"][\"tax\"].replace('\"','').strip())\n",
-    "\n",
-    "    resp = \"Lowest Cost: %.2f %s\\n\" % (minFare,data['currency'])\n",
-    "    x = 0\n",
-    "#     resp = \"\"\n",
-    "    for i in data['results']:\n",
-    "        if minFare == float(i[\"fare\"][\"total_price\"].replace('\"','').strip())+float(i[\"fare\"][\"price_per_adult\"][\"tax\"].replace('\"','').strip()):\n",
-    "            for j in i:\n",
-    "                if j == \"itineraries\":\n",
-    "                    for k in range(len(i[j])):\n",
-    "                        x += 1\n",
-    "                        resp = \"%s%s%s\\n\" % (resp,\"Flight \",str(x))\n",
-    "    #                     print(\"\\t\\tOutbound:\")\n",
-    "                        out = i[j][k][\"outbound\"]\n",
-    "                        resp = \"%s%s%s\\n\" % (resp,\"Duration: \",str(out[\"duration\"]))\n",
-    "    #                     print(\"\\t\\t\\tFlights Options:\")\n",
-    "                        for m in range(len(out[\"flights\"])):\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tConnection: \",str(m+1))\n",
-    "                            flight = out[\"flights\"][m]\n",
-    "                            leave = flight[\"departs_at\"]\n",
-    "                            resp = \"%s%s%s %s\\n\" % (resp,\"\\tDeparture: \",leave[:leave.find('T')],leave[leave.find('T')+1:])\n",
-    "                            reach = flight[\"arrives_at\"]\n",
-    "                            resp = \"%s%s%s %s\\n\" % (resp,\"\\tArrival: \",reach[:reach.find('T')],reach[reach.find('T')+1:])\n",
-    "                            if len(flight[\"origin\"]) == 1:\n",
-    "                                resp = \"%s%s%s\\n\" % (resp,\"\\tOrigin: \",flight[\"origin\"][\"airport\"])\n",
-    "                            else:\n",
-    "                                resp = \"%s%s%s %s\\n\" % (resp,\"\\tOrigin: \",flight[\"origin\"][\"airport\"],flight[\"origin\"][\"terminal\"])\n",
-    "                            if len(flight[\"destination\"]) == 1:\n",
-    "                                resp = \"%s%s%s\\n\" % (resp,\"\\tDestination: \",flight[\"destination\"][\"airport\"])\n",
-    "                            else:\n",
-    "                                resp = \"%s%s%s %s\\n\" % (resp,\"\\tDestination: \",flight[\"destination\"][\"airport\"],flight[\"destination\"][\"terminal\"])\n",
-    "                            resp = \"%s%s%s %s\\n\" % (resp,\"\\tPlane: \",flight[\"operating_airline\"],flight[\"aircraft\"])\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tFlight No: \",flight[\"flight_number\"])\n",
-    "                            resp = \"%s%s%s\\n\\n\" % (resp,\"\\tClass: \",flight[\"booking_info\"][\"travel_class\"])\n",
-    "                elif j == \"fare\":\n",
-    "                    for k in i[j]:\n",
-    "                        if k == \"price_per_adult\":\n",
-    "                            resp = \"%s%s\\n\" % (resp,\"Adult:\")\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tTotal Price: \",i[j][k][\"total_fare\"])\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tTax: \",i[j][k][\"tax\"])\n",
-    "                        elif k == \"price_per_child\":\n",
-    "                            resp = \"%s%s\\n\" % (resp,\"Child:\")\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tTotal Price: \",i[j][k][\"total_fare\"])\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tTax: \",i[j][k][\"tax\"])\n",
-    "                        elif k == \"price_per_infant\":\n",
-    "                            resp = \"%s%s\\n\" % (resp,\"Infant:\")\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tTotal Price: \",i[j][k][\"total_fare\"])\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"\\tTax: \",i[j][k][\"tax\"])\n",
-    "                        elif k == \"restrictions\":\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"Refundable: \",i[j][k][\"refundable\"])\n",
-    "                            resp = \"%s%s%s\\n\" % (resp,\"Change Penalty: \",i[j][k][\"change_penalties\"])\n",
-    "    #                     else:\n",
-    "    #                         print(k,i[j][k])\n",
-    "            resp = \"%s\\n\" % resp\n",
-    "\n",
-    "    return resp\n",
-    "\n",
-    "x = apiData(st,dest,dep_date,ret_date, arr_date, arr_time, adult, child, infant, max_p, curr)\n",
-    "# print(x)\n",
-    "x = minCostPlane(x)\n",
-    "print(\"Content-type:text/html\\r\\n\\r\\n\")\n",
-    "print(\"<html>\")\n",
-    "print(\"<head>\")\n",
-    "print(\"<title>Hello - Second CGI Program</title>\")\n",
-    "print(\"</head>\")\n",
-    "print(\"<body>\")\n",
-    "print(\"<h2>%s<h2>\" %s x)\n",
-    "print(\"</body>\")\n",
-    "print(\"</html>\")"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.6.5"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 2
-}
+import json
+import requests
+from lxml import html
+from collections import OrderedDict
+import argparse
+import certifi
+import urllib3
+
+def apiData(st,dest,dep_date,ret_date = None, arr_date = None, arr_time = None, adult = None, child = None, infant = None, max_p = None, curr = "USD"):
+    par = {}
+    par["apikey"] = "urcU6q4MmXBZ2iWBDp7ghIGg0pygrj3x"
+    par["origin"] = st
+    par["destination"] = dest
+    par["departure_date"] = dep_date
+    if ret_date is not None:
+        par["return_date"] = ret_date
+    if arr_date is not None and arr_time is not None:
+        par["arrive_by"] = arr_date+"T"+arr_time
+    if adult is None:
+        par["adults"] = 1
+    else:
+        par["adults"] = adult
+    if child is not None or child > 0:
+        par["children"] = child
+    if infant is not None or infant > 0:
+        par["infants"] = infant
+    if max_p is not None and max_p > 0:
+        par["max_price"] = max_p
+    if curr is not None:
+        par["currency"] = curr
+
+    response = requests.get("https://api.sandbox.amadeus.com/v1.2/flights/low-fare-search", params = par)
+    data = response.json()
+    return data
+
+def minCostPlane(data):
+    minFare = -1
+    for i in data['results']:
+        atot = float(i["fare"]["price_per_adult"]["total_fare"].replace('"','').strip()) + float(i["fare"]["price_per_adult"]["tax"].replace('"','').strip())
+        if "price_per_child" in i["fare"]:
+            ctot = float(i["fare"]["price_per_child"]["total_fare"].replace('"','').strip()) + float(i["fare"]["price_per_child"]["tax"].replace('"','').strip())
+        else:
+            ctot = 0
+        if "price_per_infant" in i["fare"]:
+            itot = float(i["fare"]["price_per_infant"]["total_fare"].replace('"','').strip()) + float(i["fare"]["price_per_infant"]["tax"].replace('"','').strip())
+        else:
+            itot = 0
+        if minFare < 0 or minFare > float(i["fare"]["total_price"].replace('"','').strip())+float(i["fare"]["price_per_adult"]["tax"].replace('"','').strip()):
+            minFare = float(i["fare"]["total_price"].replace('"','').strip())+float(i["fare"]["price_per_adult"]["tax"].replace('"','').strip())
+
+    resp = "Lowest Cost: %.2f %s\n" % (minFare,data['currency'])
+    x = 0
+#     resp = ""
+    for i in data['results']:
+        if minFare == float(i["fare"]["total_price"].replace('"','').strip())+float(i["fare"]["price_per_adult"]["tax"].replace('"','').strip()):
+            for j in i:
+                if j == "itineraries":
+                    for k in range(len(i[j])):
+                        x += 1
+                        resp = "%s%s%s\n" % (resp,"Flight ",str(x))
+    #                     print("\t\tOutbound:")
+                        out = i[j][k]["outbound"]
+                        resp = "%s%s%s\n" % (resp,"Duration: ",str(out["duration"]))
+    #                     print("\t\t\tFlights Options:")
+                        for m in range(len(out["flights"])):
+                            resp = "%s%s%s\n" % (resp,"\tConnection: ",str(m+1))
+                            flight = out["flights"][m]
+                            leave = flight["departs_at"]
+                            resp = "%s%s%s %s\n" % (resp,"\tDeparture: ",leave[:leave.find('T')],leave[leave.find('T')+1:])
+                            reach = flight["arrives_at"]
+                            resp = "%s%s%s %s\n" % (resp,"\tArrival: ",reach[:reach.find('T')],reach[reach.find('T')+1:])
+                            if len(flight["origin"]) == 1:
+                                resp = "%s%s%s\n" % (resp,"\tOrigin: ",flight["origin"]["airport"])
+                            else:
+                                resp = "%s%s%s %s\n" % (resp,"\tOrigin: ",flight["origin"]["airport"],flight["origin"]["terminal"])
+                            if len(flight["destination"]) == 1:
+                                resp = "%s%s%s\n" % (resp,"\tDestination: ",flight["destination"]["airport"])
+                            else:
+                                resp = "%s%s%s %s\n" % (resp,"\tDestination: ",flight["destination"]["airport"],flight["destination"]["terminal"])
+                            resp = "%s%s%s %s\n" % (resp,"\tPlane: ",flight["operating_airline"],flight["aircraft"])
+                            resp = "%s%s%s\n" % (resp,"\tFlight No: ",flight["flight_number"])
+                            resp = "%s%s%s\n\n" % (resp,"\tClass: ",flight["booking_info"]["travel_class"])
+                elif j == "fare":
+                    for k in i[j]:
+                        if k == "price_per_adult":
+                            resp = "%s%s\n" % (resp,"Adult:")
+                            resp = "%s%s%s\n" % (resp,"\tTotal Price: ",i[j][k]["total_fare"])
+                            resp = "%s%s%s\n" % (resp,"\tTax: ",i[j][k]["tax"])
+                        elif k == "price_per_child":
+                            resp = "%s%s\n" % (resp,"Child:")
+                            resp = "%s%s%s\n" % (resp,"\tTotal Price: ",i[j][k]["total_fare"])
+                            resp = "%s%s%s\n" % (resp,"\tTax: ",i[j][k]["tax"])
+                        elif k == "price_per_infant":
+                            resp = "%s%s\n" % (resp,"Infant:")
+                            resp = "%s%s%s\n" % (resp,"\tTotal Price: ",i[j][k]["total_fare"])
+                            resp = "%s%s%s\n" % (resp,"\tTax: ",i[j][k]["tax"])
+                        elif k == "restrictions":
+                            resp = "%s%s%s\n" % (resp,"Refundable: ",i[j][k]["refundable"])
+                            resp = "%s%s%s\n" % (resp,"Change Penalty: ",i[j][k]["change_penalties"])
+    #                     else:
+    #                         print(k,i[j][k])
+            resp = "%s\n" % resp
+
+    return resp
+
+import cgi, cgitb
+form = cgi.FieldStorage()
+st = form.getvalue('st')
+dest = form.getvalue('dest')
+dep_date = form.getvalue('dep_date')
+ret_date = form.getvalue('ret_date')
+adult = form.getvalue('adult')
+child = form.getvalue('child')
+infant = form.getvalue('infant')
+max_p = form.getvalue('max_p')
+
+x = apiData(st,dest,dep_date,ret_date, arr_date, arr_time, adult, child, infant, max_p, curr)
+# print(x)
+x = minCostPlane(x)
+print("Content-type:text/html\r\n\r\n")
+print("<html>")
+print("<head>")
+print("<title>Hello - Second CGI Program</title>")
+print("</head>")
+print("<body>")
+print("<h2>%s<h2>" %s x)
+print("</body>")
+print("</html>")
