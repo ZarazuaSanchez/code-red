@@ -32,7 +32,6 @@ def apiData(st,dest,dep_date,ret_date = None, arr_date = None, arr_time = None, 
     response = requests.get("https://api.sandbox.amadeus.com/v1.2/flights/low-fare-search", params = par)
     data = response.json()
     return data
-
 def minCostPlane(data):
     minFare = -1
     for i in data['results']:
@@ -103,26 +102,28 @@ def minCostPlane(data):
 
     return resp
 
-import cgi, cgitb
-form = cgi.FieldStorage()
-st = form.getvalue('st')
-dest = form.getvalue('dest')
-dep_date = form.getvalue('dep_date')
-ret_date = form.getvalue('ret_date')
-adult = form.getvalue('adult')
-child = form.getvalue('child')
-infant = form.getvalue('infant')
-max_p = form.getvalue('max_p')
+from flask import Flask, request, render_template
 
-x = apiData(st,dest,dep_date,ret_date, arr_date, arr_time, adult, child, infant, max_p, curr)
-# print(x)
-x = minCostPlane(x)
-print("Content-type:text/html\r\n\r\n")
-print("<html>")
-print("<head>")
-print("<title>Hello - Second CGI Program</title>")
-print("</head>")
-print("<body>")
-print("<h2>%s<h2>" %s x)
-print("</body>")
-print("</html>")
+app = Flask(__name__)
+
+@app.route('/')
+def form():
+    return render_template('index.html')
+
+@app.route('/', methods=["POST"])
+def newform():
+    if request.method == "POST":
+        st = request.form["st"]
+        dest = request.form["dest"]
+        dep_date = request.form["dep_date"]
+        ret_date = request.form["ret_date"]
+        adult = int(request.form["adult"])
+        child = int(request.form["child"])
+        infant = int(request.form["infant"])
+        
+        x = apiData(st,dest,dep_date,ret_date = ret_date, adult = adult, child = child, infant = infant)
+        out = minCostPlane(x)
+        
+        return render_template("index.html", out = out)
+if __name__ == "__main__":
+    app.run(debug=True)
