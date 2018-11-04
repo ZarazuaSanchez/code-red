@@ -1,16 +1,103 @@
 <!DOCTYPE html>
 <html>
-    <body>
-        <form method = "POST">
-            <input type = "text" id = "Start" name = "st">
-            <input type = "text" id = "End" name = "dest">
-            <input type = "text" id = "Leave" name = "dep_date">
-            <input type = "text" id = "Return" name = "ret_date">
-            <input type = "text" id = "Adults" name = "adult">
-            <input type = "text" id = "Children" name = "child">
-            <input type = "text" id = "Infants" name = "infant">
-            <input type = "submit" value = "Submit">
+<head>
+    <title>Trip Finder</title>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='styles/bootstrap.css')}}">
+    <link href="https://fonts.googleapis.com/css?family=Pattaya" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="jumbotron">
+            <h1 class="display-1">Cielos Flights</h1>
+            <p class="lead">Where The Price Is Just Right</p>
+        </div>
+
+        <form method="POST">
+                <div class="form-group">
+                    <div class="col-7">
+                      <label for="fromCity">From:</label>
+                      <input id="fromCity" type="text" class="form-control" name="st" placeholder="City">
+                    </div>
+                    
+                        <div class="form-group">
+                            <div class="col">
+                                <br />
+                                <label for="depDate">Departure Date:</label>
+                                <input class="m-1" id="depDate" name="dep_date" type="date">
+                            </div>
+                        </div>
+                    
+                <div class="form-group col-7">
+                    
+                        <label for="arrCity">To:</label>
+                        <input id="arrCity" type="text" class="form-control" name="dest" placeholder="City">
+                </div>
+                <div class="form-group">
+                    <div class="col">
+                        <br />
+                        <label for="arrDate">Arrival Date:</label>
+                        <input class="m-1" id="arrDate" name="ret_date" type="date">
+                    </div>
+                </div>
+                <label for="adult">How Many Adults?</label>
+                <div class="form-group col-2">
+                    <div class="col">
+                        
+                            <select class="m-1 form-control" id="adult" name="adult">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>   
+                            </select>
+                    </div>
+                </div>
+                <label for="child">Children?</label>
+                <div class="form-group col-2">
+                        <div class="col">
+
+                                <select class="form-control" id="child" name="child">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                        </div>
+                    </div>
+                    <label for="infant">Infants?</label>
+                <div class="form-group col-2">
+                        <div class="col">
+
+                                <select class="form-control" id="infant" name="infant">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                        </div>
+                    </div>
+                    <!--<label for="max">How Much Can You Spend?</label>
+                    <div class="form-group">
+                        <div class="col-2">
+                            <input id="max" type="text" class="form-control" name="max_p" placeholder="$">
+                        </div>-->
+                    </div>
+                    
+
+                <div class="form-group m-1">
+                    <div class="col">
+                        <br />
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </div>
         </form>
         <pre>{{ out }}</pre>
-    </body>
+    </div>
+    
+</body>
 </html>
